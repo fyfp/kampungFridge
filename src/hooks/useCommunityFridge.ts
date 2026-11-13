@@ -9,6 +9,7 @@ import {
   INITIAL_VENDOR_DROPOFFS,
 } from '../data/mockData';
 import {
+  ApiMealRecipe,
   AppTab,
   CleanupTask,
   CookoutEvent,
@@ -16,10 +17,12 @@ import {
   FoodCategory,
   FoodItem,
   FreshnessStatus,
+  RecipeCategory,
   SmsSubscription,
   ToastMessage,
   VendorDropoff,
 } from '../types';
+import { fetchRecipeCategories, fetchRecipesByIngredients } from '../services/recipeApi';
 
 export interface DonationInput {
   name: string;
@@ -54,11 +57,38 @@ export function useCommunityFridge() {
   const [largeTextMode, setLargeTextMode] = useState<boolean>(false);
   const [smsSubscription, setSmsSubscription] = useState<SmsSubscription | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [recipeCategories, setRecipeCategories] = useState<RecipeCategory[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState<boolean>(false);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [selectedFridgeItemIds, setSelectedFridgeItemIds] = useState<string[]>([]);
+  const [matchedQueryIngredients, setMatchedQueryIngredients] = useState<string[]>([]);
+  const [apiMatchedRecipes, setApiMatchedRecipes] = useState<ApiMealRecipe[]>([]);
+  const [isMatchingRecipes, setIsMatchingRecipes] = useState<boolean>(false);
+  const [matchRecipesError, setMatchRecipesError] = useState<string | null>(null);
 
   // Modal & drawer state
   const [qrModalOpen, setQrModalOpen] = useState<boolean>(false);
   const [smsModalOpen, setSmsModalOpen] = useState<boolean>(false);
   const [claimTargetItem, setClaimTargetItem] = useState<FoodItem | null>(null);
+
+  const loadRecipeCategories = useCallback(async () => {
+    setIsLoadingCategories(true);
+    setCategoriesError(null);
+    try {
+      const categories = await fetchRecipeCategories();
+      setRecipeCategories(categories);
+    } catch (err) {
+      setCategoriesError(
+        err instanceof Error ? err.message : 'Unable to load recipe categories'
+      );
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadRecipeCategories();
+  }, [loadRecipeCategories]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -282,6 +312,59 @@ export function useCommunityFridge() {
     [donorPoints, addToast]
   );
 
+  const toggleFridgeItemSelection = useCallback((itemId: string) => {
+    setSelectedFridgeItemIds((prev) =>
+      prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
+    );
+  }, []);
+
+  const clearFridgeItemSelection = useCallback(() => {
+    setSelectedFridgeItemIds([]);
+  }, []);
+
+  const matchRecipesFromSelection = useCallback(
+    async (fallbackItemNames?: string[]) => {
+      const selectedNames = foodItems
+        .filter((item) => selectedFridgeItemIds.includes(item.id))
+        .map((item) => item.name);
+
+      const queryNames =
+        selectedNames.length > 0
+          ? selectedNames
+          : (fallbackItemNames ?? []).slice(0, 4);
+
+      if (queryNames.length === 0) {
+        setActiveTab('recipes');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      setMatchedQueryIngredients(queryNames);
+      setActiveTab('recipes');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setIsMatchingRecipes(true);
+      setMatchRecipesError(null);
+
+      try {
+        const meals = await fetchRecipesByIngredients(queryNames);
+        setApiMatchedRecipes(meals);
+      } catch (err) {
+        setMatchRecipesError(
+          err instanceof Error ? err.message : 'Unable to match recipes right now.'
+        );
+      } finally {
+        setIsMatchingRecipes(false);
+      }
+    },
+    [foodItems, selectedFridgeItemIds]
+  );
+
+  const clearMatchedRecipes = useCallback(() => {
+    setMatchedQueryIngredients([]);
+    setApiMatchedRecipes([]);
+    setMatchRecipesError(null);
+  }, []);
+
   return {
     activeTab,
     setActiveTab,
@@ -289,7 +372,20 @@ export function useCommunityFridge() {
     setSelectedLocationId,
     locations: FRIDGE_LOCATIONS,
     foodItems,
+    selectedFridgeItemIds,
+    toggleFridgeItemSelection,
+    clearFridgeItemSelection,
+    matchedQueryIngredients,
+    apiMatchedRecipes,
+    isMatchingRecipes,
+    matchRecipesError,
+    matchRecipesFromSelection,
+    clearMatchedRecipes,
     recipes: INITIAL_RECIPES,
+    recipeCategories,
+    isLoadingCategories,
+    categoriesError,
+    reloadRecipeCategories: loadRecipeCategories,
     donations,
     donorPoints,
     claimedCount,

@@ -26,7 +26,20 @@ export default function App() {
     setSelectedLocationId,
     locations,
     foodItems,
+    selectedFridgeItemIds,
+    toggleFridgeItemSelection,
+    clearFridgeItemSelection,
+    matchedQueryIngredients,
+    apiMatchedRecipes,
+    isMatchingRecipes,
+    matchRecipesError,
+    matchRecipesFromSelection,
+    clearMatchedRecipes,
     recipes,
+    recipeCategories,
+    isLoadingCategories,
+    categoriesError,
+    reloadRecipeCategories,
     donations,
     donorPoints,
     claimedCount,
@@ -96,14 +109,27 @@ export default function App() {
             selectedLocationId={selectedLocationId}
             onSelectLocation={setSelectedLocationId}
             foodItems={foodItems}
+            selectedItemIds={selectedFridgeItemIds}
+            onToggleSelectItem={toggleFridgeItemSelection}
+            onClearSelection={clearFridgeItemSelection}
             onClaimClick={(item) => setClaimTargetItem(item)}
-            onGoToRecipes={() => handleTabChange('recipes')}
+            onMatchRecipes={(fallbackNames) => void matchRecipesFromSelection(fallbackNames)}
           />
         )}
 
         {activeTab === 'recipes' && (
           <RecipesPage
             recipes={recipes}
+            matchedQueryIngredients={matchedQueryIngredients}
+            apiMatchedRecipes={apiMatchedRecipes}
+            isMatchingRecipes={isMatchingRecipes}
+            matchRecipesError={matchRecipesError}
+            onRetryMatchRecipes={() => void matchRecipesFromSelection(matchedQueryIngredients)}
+            onClearMatchedRecipes={clearMatchedRecipes}
+            recipeCategories={recipeCategories}
+            isLoadingCategories={isLoadingCategories}
+            categoriesError={categoriesError}
+            onReloadCategories={reloadRecipeCategories}
             foodItems={foodItems}
             locations={locations}
             selectedLocationId={selectedLocationId}

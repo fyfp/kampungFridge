@@ -104,3 +104,23 @@ export interface ToastMessage {
   description?: string;
   variant: 'success' | 'info' | 'warning';
 }
+
+export interface RecipeCategory {
+  id: string;
+  name: string;
+  thumbnailUrl: string;
+  description: string;
+}
+
+export interface ApiMealRecipe {
+  id: string;
+  title: string;
+  category: string;
+  area: string;
+  thumbnailUrl: string;
+  instructions: string[];
+  ingredients: { name: string; measure: string }[];
+  matchedIngredients: string[];
+  tags: string[];
+  youtubeUrl?: string;
+}

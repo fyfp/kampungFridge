@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   AlertTriangle,
   BookOpen,
+  Check,
   CheckCircle2,
   Clock,
   MapPin,
@@ -15,8 +16,11 @@ interface FridgeExplorerPageProps {
   selectedLocationId: string;
   onSelectLocation: (id: string) => void;
   foodItems: FoodItem[];
+  selectedItemIds: string[];
+  onToggleSelectItem: (itemId: string) => void;
+  onClearSelection: () => void;
   onClaimClick: (item: FoodItem) => void;
-  onGoToRecipes: () => void;
+  onMatchRecipes: (fallbackItemNames: string[]) => void;
 }
 
 const CATEGORIES: ('All' | FoodCategory)[] = [
@@ -63,8 +67,11 @@ export function FridgeExplorerPage({
   selectedLocationId,
   onSelectLocation,
   foodItems,
+  selectedItemIds,
+  onToggleSelectItem,
+  onClearSelection,
   onClaimClick,
-  onGoToRecipes,
+  onMatchRecipes,
 }: FridgeExplorerPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'All' | FoodCategory>('All');
@@ -183,14 +190,33 @@ export function FridgeExplorerPage({
           </div>
 
           {/* Recipe Matcher Shortcut */}
-          <button
-            type="button"
-            onClick={onGoToRecipes}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#EFF5F1] text-[#15803D] text-sm font-semibold hover:bg-[#E1EDE5] transition-colors whitespace-nowrap shrink-0 cursor-pointer min-h-[42px]"
-          >
-            <BookOpen className="w-4 h-4 shrink-0" aria-hidden="true" />
-            <span>Match Recipes With These Items</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {selectedItemIds.length > 0 && (
+              <button
+                type="button"
+                onClick={onClearSelection}
+                className="px-3 py-2.5 rounded-xl border border-[#DCE7E0] bg-white text-xs sm:text-sm font-medium text-[#4B5E54] hover:text-[#0F1E17] hover:bg-[#F8FAF9] cursor-pointer whitespace-nowrap min-h-[42px]"
+              >
+                Clear ({selectedItemIds.length})
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onMatchRecipes(filteredItems.map((i) => i.name))}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer min-h-[42px] ${
+                selectedItemIds.length > 0
+                  ? 'bg-[#0F1E17] text-white hover:bg-[#1E3529]'
+                  : 'bg-[#EFF5F1] text-[#15803D] hover:bg-[#E1EDE5]'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>
+                {selectedItemIds.length > 0
+                  ? `Match Recipes With These Items (${selectedItemIds.length})`
+                  : 'Match Recipes With These Items'}
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Segmented Category & Freshness Filter Controls */}
@@ -252,10 +278,15 @@ export function FridgeExplorerPage({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredItems.map((item) => {
             const loc = locations.find((l) => l.id === item.locationId);
+            const isSelected = selectedItemIds.includes(item.id);
             return (
               <article
                 key={item.id}
-                className="bg-white rounded-2xl border border-[#E2EAE5] p-5 flex flex-col justify-between hover:border-[#B9CEC1] transition-colors"
+                className={`rounded-2xl border p-5 flex flex-col justify-between transition-colors ${
+                  isSelected
+                    ? 'bg-[#F4FAF6] border-[#15803D]'
+                    : 'bg-white border-[#E2EAE5] hover:border-[#B9CEC1]'
+                }`}
               >
                 <div>
                   {/* Quiet 1-line kicker metadata (NO pill boxes) */}
@@ -292,13 +323,33 @@ export function FridgeExplorerPage({
                   </div>
                 </div>
 
-                <div className="mt-5">
+                <div className="mt-5 flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => onToggleSelectItem(item.id)}
+                    aria-pressed={isSelected}
+                    className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-3 rounded-xl border text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer min-h-[44px] ${
+                      isSelected
+                        ? 'bg-[#0F1E17] border-[#0F1E17] text-white'
+                        : 'bg-white border-[#CBD8D0] text-[#0F1E17] hover:bg-[#EFF5F1]'
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                        isSelected ? 'border-white bg-[#15803D]' : 'border-[#8EA397]'
+                      }`}
+                    >
+                      {isSelected && <Check className="w-3 h-3 text-white" aria-hidden="true" />}
+                    </span>
+                    <span>{isSelected ? 'Selected' : 'Select'}</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => onClaimClick(item)}
-                    className="w-full py-3 px-4 rounded-xl bg-[#15803D] text-white text-sm font-semibold hover:bg-[#166534] active:scale-[0.98] transition-all cursor-pointer min-h-[44px]"
+                    className="flex-1 py-3 px-4 rounded-xl bg-[#15803D] text-white text-sm font-semibold hover:bg-[#166534] active:scale-[0.98] transition-all cursor-pointer min-h-[44px] whitespace-nowrap"
                   >
-                    Claim Free Item
+                    Claim Free
                   </button>
                 </div>
               </article>
