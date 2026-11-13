@@ -1,0 +1,6 @@
+{
+  "name": "KampungFridge",
+  "description": "HDB Community Fridge & Surplus Food-Sharing Platform featuring real-time pantry stock, personalised recipes, donor rewards, and grassroots management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
